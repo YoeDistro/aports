@@ -469,3 +469,24 @@ Plugins.Enabled = false
 
 # Set file permissions for Unix Socket File.
 #UnixSocketPerm = "0660"
+
+# Enable the experimental Jellyfin Music API.
+#Jellyfin.Enabled = false
+
+# Server name advertised to Jellyfin clients.
+#Jellyfin.ServerName = Navidrome <version>
+
+# Comma-separated usernames advertised on the unauthenticated public users endpoint.
+#Jellyfin.ExposedPublicUsers = ""
+
+# Bounds how many Jellyfin collection responses can stream at once.
+#Jellyfin.MaxConcurrentStreams = max(2, MaxOpenConns/2)
+
+# Sort names and titles naturally (e.g. "Track 2" before "Track 10").
+#EnableNaturalSorting = false
+
+# Cap on the size of artwork images Navidrome will decode.
+#MaxImageSize = 20MB
+
+# Periodically run a full ANALYZE to keep query planner statistics fresh.
+#EnableScheduledDBAnalyze = true

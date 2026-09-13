@@ -1,8 +1,8 @@
 # Contributor: Tom Lebreux <me@tomlebreux.com>
 # Maintainer: Julien Voisin <julien.voisin@dustri.org>
 pkgname=navidrome
-pkgver=0.63.2
-pkgrel=4
+pkgver=0.64.0
+pkgrel=0
 pkgdesc="Modern Music Server and Streamer compatible with Subsonic/Airsonic"
 url="https://navidrome.org/"
 arch="all !riscv64 !s390x"
@@ -81,8 +81,8 @@ package() {
 }
 
 sha512sums="
-29d2ed32f6a69cbfd6bd132f83c2fbbb9b135ff3250164b5650e7fc0dc282e37dc2913c3ca786ad513e84c623efac2300c18bc66052d0faad2eaf492e8f08cf1  navidrome-0.63.2.tar.gz
+31fa8cb7209aeb5d1ea94208ca07b34346f0c983fa0bb273ff0b7b75c723f88f77d582ffba83cc3c0763823564071ba90caf9d58566d98f3b9f7c499716691fa  navidrome-0.64.0.tar.gz
 9622f9e30b8964e7e2708d313f45e0977fdfa4ceec9b4311f8a40bd250c986fcc87f24577e74ccbcf06d4f3d071f0951d5e25eb3107ce0188b7caf6fe073edaa  navidrome.initd
 dc5a0f21c5da6c165c4dc216b8dc3cab8e2c02c5c2ff06dc393528383234034428df7cfa11704a2373fcebba4cba484fffd2231b3c5fd871420a34fe1dcf1e04  navidrome.confd
-1bf7bdb0b7cddf550dea3bd1e10daf757d0003c091b62fff7a50eac609b4b89fc1cb42215f591c174f856c51d242ec24b8bb3b5ac575759835acd34c9e6ba9f9  navidrome.toml
+ad7aea0e931427a9ef2e90327c599140ad47f7df698c8491f09eb8459fd05f9e679e4869fd4f76a54e72453386ef0c34ae618a9745127de394554cf4f8a1f8f4  navidrome.toml
 "
