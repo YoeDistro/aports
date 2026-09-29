@@ -1,8 +1,8 @@
 # Contributor: Díaz Urbaneja Diego <sodomon2@gmail.com>
 # Maintainer: Díaz Urbaneja Diego <sodomon2@gmail.com>
 pkgname=godot
-pkgver=4.6
-pkgrel=2
+pkgver=4.7.2
+pkgrel=0
 pkgdesc="Multi-platform 2D and 3D game engine"
 url="https://godotengine.org"
 license="MIT"
@@ -47,9 +47,7 @@ makedepends="
 	"
 depends="ca-certificates-bundle"
 subpackages="$pkgname-doc $pkgname-templates"
-source="https://github.com/godotengine/godot/releases/download/$pkgver-stable/godot-$pkgver-stable.tar.xz
-	glslang.patch
-	"
+source="https://github.com/godotengine/godot/releases/download/$pkgver-stable/godot-$pkgver-stable.tar.xz"
 options="!check" # No tests
 builddir="$srcdir"/godot-"$pkgver"-stable
 _sconsflags="
@@ -125,8 +123,8 @@ package() {
 		-t "$pkgdir"/usr/share/applications/
 	install -Dm644 misc/dist/linux/org.godotengine.Godot.appdata.xml \
 		-t "$pkgdir"/usr/share/metainfo/
-	install -Dm644 icon.png "$pkgdir"/usr/share/icons/hicolor/256x256/apps/godot.png
-	install -Dm644 icon.svg "$pkgdir"/usr/share/icons/hicolor/scalable/apps/godot.svg
+	install -Dm644 misc/logo/icon.png "$pkgdir"/usr/share/icons/hicolor/256x256/apps/godot.png
+	install -Dm644 misc/logo/icon.svg "$pkgdir"/usr/share/icons/hicolor/scalable/apps/godot.svg
 	install -Dm644 misc/dist/linux/godot.6 -t "$pkgdir"/usr/share/man/man6/
 	install -Dm755 bin/godot.*.editor.* "$pkgdir"/usr/bin/godot
 	install -Dm755 bin/godot.*.template_debug.* "$pkgdir"/usr/bin/godot-template-debug
@@ -139,6 +137,5 @@ templates() {
 }
 
 sha512sums="
-e93201aa5a78da5baf81a110b3ca17603cc028ff35bfbfd1bff0061fcbbfa264b3941e7a42dc44320e141ab0624fe7e096f35ee362c9e0d4fa695d396a52eedd  godot-4.6-stable.tar.xz
-0878e5f269fa16884d8b84e217c96817245dc6748a3fe60ae576dfd3006123f59ff25fac793898a30a8a6ff70b2accbde474671d998d7b05584951512743f7a0  glslang.patch
+15e23f8423003f5d32da07c34a8651e43af23b050cc0dea2d4fba6944ca445d079edb52b66fdf82b6d5739bba1fe707b9e27b8836b19f09f64f313966160f8fc  godot-4.7.2-stable.tar.xz
 "
