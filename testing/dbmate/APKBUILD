@@ -1,6 +1,6 @@
 # Maintainer: Cowington Post <cowingtonpost@gmail.com>
 pkgname=dbmate
-pkgver=2.35.0
+pkgver=2.36.0
 pkgrel=0
 pkgdesc="Lightweight, framework-agnostic database migration tool"
 url="https://github.com/amacneil/dbmate"
@@ -31,5 +31,5 @@ package() {
 }
 
 sha512sums="
-fd0c991a9a0aff90678e95e6cf045dc4d4978d11e36d7cfbb1d656f98cb622962b4965519586a40080eaca4d1f42ff3d12f40980b1e4d07fa315103e989e303f  dbmate-2.35.0.tar.gz
+fddde8d0b99efb09ea0727abdac76c9a845eb858531e486ea22ac02d86cd082c9d551b6b66b7a35e3f75bbe466a3926edad517ed4da18bddf7b0bcea3c6c5b78  dbmate-2.36.0.tar.gz
 "
