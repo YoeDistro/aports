@@ -71,12 +71,14 @@ gtk4() {
 
 profile() {
 	pkgdesc="$pkgdesc (profile files)"
+	depends=
 
 	amove etc/profile.d
 }
 
 app() {
 	pkgdesc="$pkgdesc (apps)"
+	depends=
 
 	amove usr/bin
 	amove usr/share/xdg-terminals
