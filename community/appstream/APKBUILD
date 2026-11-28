@@ -2,7 +2,7 @@
 # Contributor: Rasmus Thomsen <oss@cogitri.dev>
 maintainer="Achill Gilgenast <achill@achill.org>"
 pkgname=appstream
-pkgver=1.2.1
+pkgver=1.2.3
 pkgrel=0
 pkgdesc="Provides a standard for creating app stores across distributions"
 url="https://distributions.freedesktop.org/wiki/AppStream"
@@ -102,5 +102,5 @@ qt() {
 }
 
 sha512sums="
-1bd83c514253560c2bb9ec89c9796e556ae33f27240b7db18e90175159ad38d933ef6fc36244f24c4b7b1ec9874cde70e835454be25a180eb78911a7b59c48d7  AppStream-1.2.1.tar.xz
+8c2ac4ec88cc2b998f73975f910237ad1c2c59c41809e0c09d4a5c91be250343ac982850c4220a6e444b79d1499ac815b8d9fbb7c85852a2c44d87c1744f8d96  AppStream-1.2.3.tar.xz
 "
