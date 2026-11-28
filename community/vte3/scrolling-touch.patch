@@ -1,0 +1,338 @@
+Patch-Source: https://gitlab.gnome.org/GNOME/vte/-/merge_requests/31
+---
+From 2fca47fdedba29ea0ca44e9475ef34ae18ba5fed Mon Sep 17 00:00:00 2001
+From: grorp <grorp@posteo.de>
+Date: Wed, 28 Oct 2026 16:08:05 +0100
+Subject: [PATCH 1/3] widget: Don't claim the event on press when selecting
+
+Currently, any click on the terminal is claimed by the selection code
+immediately, as soon as the press event arrives.
+This breaks swiping to scroll on touch. It also breaks the long-press
+gesture (supposed to bring up the context menu).
+
+The only thing that actually happens on press is "deselect all". We
+already only start selecting once a movement threshold is crossed.
+
+This change defers "deselect all" to either selection-start or the
+release event. This means we can also delay claiming the event sequence
+to that point, which makes touch scrolling work.
+
+When the scroll gesture claims the sequence, our click gesture is
+cancelled (we don't receive a release event), so the current selection
+is kept when scrolling.
+
+(While touch scrolling did work before, before recent GTK changes, I'm
+not sure why as the VTE code doesn't seem to allow that.)
+---
+ src/vte.cc | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/src/vte.cc b/src/vte.cc
+index 9586f10d..5418a65c 100644
+--- a/src/vte.cc
++++ b/src/vte.cc
+@@ -7309,8 +7309,12 @@ Terminal::maybe_end_selection()
+ 		return true;
+ 	}
+ 
+-        if (m_will_select_after_threshold)
++        if (m_will_select_after_threshold) {
++                deselect_all();
++                /* This means we handled the press event ourselves, so don't
++                * allow sending the release event to the app either. */
+                 return true;
++        }
+ 
+         return false;
+ }
+@@ -7423,6 +7427,7 @@ Terminal::widget_mouse_motion(vte::platform::MouseEvent const& event)
+                                               pos.x, pos.y))
+                         return true;
+ 
++                deselect_all();
+                 start_selection(vte::view::coords(m_mouse_last_position.x, m_mouse_last_position.y),
+                                 SelectionType::eCHAR);
+         }
+@@ -7511,10 +7516,14 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
+ 				}
+ 			}
+ 			if (start_selecting) {
+-				deselect_all();
+                                 m_will_select_after_threshold = true;
+                                 m_selection_block_mode = !!(m_modifiers & GDK_CONTROL_MASK);
+-				handled = true;
++                                /* Do not mark the event as handled for GTK yet,
++                                 * this could still be e.g. the start of a
++                                 * touch scrolling gesture.
++                                 * Don't send it to the app though, we will
++                                 * handle it ourselves once a movement
++                                 * threshold is crossed. */
+ 			}
+ 			if (extend_selecting) {
+ 				/* The whole selection code needs to be
+@@ -7560,14 +7569,14 @@ Terminal::widget_mouse_press(vte::platform::MouseEvent const& event)
+ 			break;
+ 		}
+                 if (event.button_value() >= 1 && event.button_value() <= 15) {
+-                        if (handled)
++                        if (handled || start_selecting)
+                                 m_mouse_handled_buttons |= (1 << (event.button_value() - 1));
+                         else
+                                 m_mouse_handled_buttons &= ~(1 << (event.button_value() - 1));
+                 }
+ 		/* If we haven't done anything yet, try sending the mouse
+ 		 * event to the app. */
+-		if (handled == FALSE) {
++		if (handled == FALSE && start_selecting == FALSE) {
+                         handled = maybe_send_mouse_button(rowcol, event);
+ 		}
+ 		break;
+-- 
+GitLab
+
+
+From 128dedb3a9467e9cc93c038287ba4ad85cd998b0 Mon Sep 17 00:00:00 2001
+From: grorp <grorp@posteo.de>
+Date: Mon, 26 Oct 2026 17:29:33 +0100
+Subject: [PATCH 2/3] widget: gtk4: Remove no-op GtkGestureClick::stopped
+ handler
+
+This tells us that there will be no double or triple-click event coming
+during the current click anymore, because distance/time thresholds have
+been exceeded.
+
+We don't care about that, the press and release handlers already deal
+with the events as they arrive.
+---
+ src/widget.cc | 23 -----------------------
+ src/widget.hh |  1 -
+ 2 files changed, 24 deletions(-)
+
+diff --git a/src/widget.cc b/src/widget.cc
+index 4489a3ac..56f37335 100644
+--- a/src/widget.cc
++++ b/src/widget.cc
+@@ -567,18 +567,6 @@ catch (...)
+         vte::log_exception();
+ }
+ 
+-static void
+-click_stopped_cb(GtkGestureClick* gesture,
+-                 Widget* that) noexcept
+-try
+-{
+-        that->gesture_click_stopped(gesture);
+-}
+-catch (...)
+-{
+-        vte::log_exception();
+-}
+-
+ static void
+ click_unpaired_release_cb(GtkGestureClick* gesture,
+                           double x,
+@@ -923,8 +911,6 @@ Widget::constructed() noexcept
+                          G_CALLBACK(click_pressed_cb), this);
+         g_signal_connect(gesture.get(), "released",
+                          G_CALLBACK(click_released_cb), this);
+-        g_signal_connect(gesture.get(), "stopped",
+-                         G_CALLBACK(click_stopped_cb), this);
+         g_signal_connect(gesture.get(), "unpaired-release",
+                          G_CALLBACK(click_unpaired_release_cb), this);
+         gtk_event_controller_set_name(GTK_EVENT_CONTROLLER(gesture.get()), "vte-click-gesture");
+@@ -1398,15 +1384,6 @@ Widget::gesture_click_released(GtkGestureClick* gesture,
+                 gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+ }
+ 
+-void
+-Widget::gesture_click_stopped(GtkGestureClick* gesture)
+-{
+-        _vte_debug_print(vte::debug::category::EVENTS, "Click gesture stopped");
+-
+-        // FIXMEgtk4 what's the right thing to do here???
+-        // Should probably stop selection expansion mode, reset stored buttons, ...?
+-}
+-
+ void
+ Widget::gesture_click_unpaired_release(GtkGestureClick* gesture,
+                                        double x,
+diff --git a/src/widget.hh b/src/widget.hh
+index 4c978d5d..c1807143 100644
+--- a/src/widget.hh
++++ b/src/widget.hh
+@@ -468,7 +468,6 @@ public:
+                                     int press_count,
+                                     double x,
+                                     double y);
+-        void gesture_click_stopped(GtkGestureClick* gesture);
+         void gesture_click_unpaired_release(GtkGestureClick* gesture,
+                                             double x,
+                                             double y,
+-- 
+GitLab
+
+
+From ef9762281dba1b8773da727d943d851334476483 Mon Sep 17 00:00:00 2001
+From: grorp <grorp@posteo.de>
+Date: Mon, 26 Oct 2026 18:46:40 +0100
+Subject: [PATCH 3/3] widget: gtk4: Handle when click gesture is cancelled by
+ touch scrolling
+
+When the scroll gesture claims the sequence, our click gesture is
+cancelled and we don't receive a release event.
+
+This means VTE thinks the left mouse button is still pressed and
+m_will_select_after_threshold remains true.
+This can be tested by swipe-scrolling with your finger and moving the
+mouse afterwards. Moving the mouse now selects text even though no
+mouse button is pressed.
+
+Fix that by handling the cancellation.
+---
+ src/vte.cc         | 25 +++++++++++++++++++++++--
+ src/vteinternal.hh |  3 ++-
+ src/widget.cc      | 29 +++++++++++++++++++++++++++++
+ src/widget.hh      |  2 ++
+ 4 files changed, 56 insertions(+), 3 deletions(-)
+
+diff --git a/src/vte.cc b/src/vte.cc
+index 5418a65c..7bcec3af 100644
+--- a/src/vte.cc
++++ b/src/vte.cc
+@@ -7290,7 +7290,7 @@ Terminal::start_selection (vte::view::coords const& pos,
+ }
+ 
+ bool
+-Terminal::maybe_end_selection()
++Terminal::maybe_end_selection(bool cancelled)
+ {
+ 	if (m_selecting) {
+ 		/* Copy only if something was selected. */
+@@ -7309,7 +7309,7 @@ Terminal::maybe_end_selection()
+ 		return true;
+ 	}
+ 
+-        if (m_will_select_after_threshold) {
++        if (m_will_select_after_threshold && !cancelled) {
+                 deselect_all();
+                 /* This means we handled the press event ourselves, so don't
+                 * allow sending the release event to the app either. */
+@@ -7722,6 +7722,27 @@ Terminal::widget_mouse_release(vte::platform::MouseEvent const& event)
+ 	return handled;
+ }
+ 
++void
++Terminal::widget_mouse_cancel()
++{
++        /* This mirrors Terminal::widget_mouse_release but avoids side effects. */
++
++        /* Need to ensure the ringview is updated. */
++        ringview_update();
++
++        stop_autoscroll();
++
++        maybe_end_selection(true);
++        m_mouse_handled_buttons = 0;
++        m_mouse_pressed_buttons = 0;
++
++        m_will_select_after_threshold = false;
++
++        set_pointer_autohidden(false);
++        hyperlink_hilite_update();
++        match_hilite_update();
++}
++
+ void
+ Terminal::widget_focus_in()
+ {
+diff --git a/src/vteinternal.hh b/src/vteinternal.hh
+index 9f7093a7..cb413e70 100644
+--- a/src/vteinternal.hh
++++ b/src/vteinternal.hh
+@@ -1126,6 +1126,7 @@ public:
+         bool widget_mouse_motion(vte::platform::MouseEvent const& event);
+         bool widget_mouse_press(vte::platform::MouseEvent const& event);
+         bool widget_mouse_release(vte::platform::MouseEvent const& event);
++        void widget_mouse_cancel();
+         void widget_mouse_enter(vte::platform::MouseEvent const& event);
+         void widget_mouse_leave(vte::platform::MouseEvent const& event);
+         bool widget_mouse_scroll(vte::platform::ScrollEvent const& event);
+@@ -1324,7 +1325,7 @@ public:
+ 
+         void start_selection(vte::view::coords const& pos,
+                              SelectionType type);
+-        bool maybe_end_selection();
++        bool maybe_end_selection(bool cancelled = false);
+ 
+         void select_all();
+         void deselect_all();
+diff --git a/src/widget.cc b/src/widget.cc
+index 56f37335..2c555982 100644
+--- a/src/widget.cc
++++ b/src/widget.cc
+@@ -567,6 +567,19 @@ catch (...)
+         vte::log_exception();
+ }
+ 
++static void
++click_end_cb(GtkGestureClick* gesture,
++             GdkEventSequence* sequence,
++             Widget* that) noexcept
++try
++{
++        that->gesture_click_end(gesture, sequence);
++}
++catch (...)
++{
++        vte::log_exception();
++}
++
+ static void
+ click_unpaired_release_cb(GtkGestureClick* gesture,
+                           double x,
+@@ -913,6 +926,8 @@ Widget::constructed() noexcept
+                          G_CALLBACK(click_released_cb), this);
+         g_signal_connect(gesture.get(), "unpaired-release",
+                          G_CALLBACK(click_unpaired_release_cb), this);
++        g_signal_connect(gesture.get(), "end",
++                         G_CALLBACK(click_end_cb), this);
+         gtk_event_controller_set_name(GTK_EVENT_CONTROLLER(gesture.get()), "vte-click-gesture");
+         gtk_widget_add_controller(m_widget, GTK_EVENT_CONTROLLER(gesture.release()));
+ 
+@@ -1410,6 +1425,20 @@ Widget::gesture_click_unpaired_release(GtkGestureClick* gesture,
+                 gtk_gesture_set_state(GTK_GESTURE(gesture), GTK_EVENT_SEQUENCE_CLAIMED);
+ }
+ 
++void
++Widget::gesture_click_end(GtkGestureClick* gesture, GdkEventSequence *sequence)
++{
++        auto current = gtk_gesture_single_get_current_sequence(GTK_GESTURE_SINGLE(gesture));
++        if (gtk_gesture_handles_sequence(GTK_GESTURE(gesture), current))
++                return;
++
++        _vte_debug_print(vte::debug::category::EVENTS, "Click gesture cancelled");
++        /* This can happen if the sequence is claimed by touch scrolling.
++         * We don't receive GtkGestureClick::released in that case. */
++
++        terminal()->widget_mouse_cancel();
++}
++
+ #endif /* VTE_GTK == 4 */
+ 
+ void
+diff --git a/src/widget.hh b/src/widget.hh
+index c1807143..8c8b4e2c 100644
+--- a/src/widget.hh
++++ b/src/widget.hh
+@@ -473,6 +473,8 @@ public:
+                                             double y,
+                                             unsigned button,
+                                             GdkEventSequence* sequence);
++        void gesture_click_end(GtkGestureClick* gesture,
++                               GdkEventSequence* sequence);
+         void gesture_long_press_pressed(GtkGestureLongPress* gesture,
+                                         double x,
+                                         double y);
+-- 
+GitLab
+

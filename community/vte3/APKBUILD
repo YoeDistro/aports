@@ -2,7 +2,7 @@
 maintainer="team/gnome <achill@achill.org>"
 pkgname=vte3
 pkgver=0.85.0
-pkgrel=0
+pkgrel=1
 pkgdesc="Virtual Terminal Emulator library"
 url="https://gitlab.gnome.org/GNOME/vte"
 arch="all"
@@ -39,6 +39,7 @@ makedepends="
 	"
 source="https://gitlab.gnome.org/GNOME/vte/-/archive/$pkgver/vte-$pkgver.tar.gz
 	fix-W_EXITCODE.patch
+	scrolling-touch.patch
 	"
 
 builddir="$srcdir/vte-$pkgver"
@@ -85,4 +86,5 @@ app() {
 sha512sums="
 902ea1940ed4e8481b73c47b04fe92faa2667de71ffafb120a9a66347690b3e05e7960d25eeb11d2472f7315972b5292b7f1b3fc6fff0963591d43fcfb6bb8cf  vte-0.85.0.tar.gz
 b6c1856bf075c2e3e91a0d4aff700c59e738bd6abe4122a11d680f104a2dab9d99f7d836a3ef3020b25ceff0a37231a6561eb917f0e4b9f90837eb634d8f7f20  fix-W_EXITCODE.patch
+c0e0e050d8493d9d71d77ac8d7d6d856f300defa5c55e5be602bec079bb43d2a1c31ed60f356e256d89e3876b083f376c1970623c5aaa36be3d20461f981d3f2  scrolling-touch.patch
 "
